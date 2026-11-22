@@ -7,52 +7,60 @@
 <section class="hero"><div><span class="eyebrow">Wandersteine · Geschichten verbinden</span><h1>Manche Reisen beginnen ganz klein.</h1><p>Ein bemalter Stein wandert von Hand zu Hand. Jeder Fund fügt seiner Geschichte ein neues Kapitel hinzu. Entdecke, wohin die Reise führt.</p><div class="actions"><button class="btn" onclick="show('search')">Stein entdecken</button><button class="btn outline" onclick="show('register')">Eigenen Stein starten</button></div></div><div class="art" role="img" aria-label="Illustration eines bemalten Wandersteins in einer grünen Landschaft"><div class="hill"></div><div class="stone"><span>✧</span></div><div class="arttag">Wunderwelt · Wandersteine</div><div class="artlabel">Ein Stein. Unzählige Geschichten.</div></div></section>
 <div class="steps"><div class="stepsin"><div><span class="num">01</span><div><b>Gestalten</b><small>Stein bemalen und eine eigene Nummer wählen.</small></div></div><div><span class="num">02</span><div><b>Weitergeben</b><small>Den Stein an einem passenden Ort auslegen.</small></div></div><div><span class="num">03</span><div><b>Entdecken</b><small>Fundort, Foto und Geschichte hinzufügen.</small></div></div></div></div>
 <section class="explore"><div class="sectionhead"><div><span class="eyebrow">Unterwegs in der Wunderwelt</span><h2>Jeder Fund hinterlässt eine Spur.</h2></div><p>Eine Reise wird sichtbar: vom ersten Fund bis zum nächsten Abenteuer.</p></div><div class="mapgrid"><div class="map" aria-label="Illustrative Karte als Designvorschau"><svg viewBox="0 0 700 360" preserveAspectRatio="xMidYMid slice"><rect width="700" height="360" fill="#dce9df"/><path d="M-50 110Q120 10 230 90T490 100T760 50V-50H-50Z" fill="#bfd6c3"/><path d="M-50 310Q140 260 230 325T530 290T760 325V400H-50Z" fill="#bcd4c0"/><path d="M70 -30Q160 90 240 110T410 220T650 370" fill="none" stroke="#f9faf4" stroke-width="23"/><path d="M-20 215Q150 175 290 215T720 180" fill="none" stroke="#f9faf4" stroke-width="15"/><path d="M550 -30Q510 80 600 130T650 370" fill="none" stroke="#9fc4cf" stroke-width="34"/><path d="M110 250Q245 165 360 175T570 90" stroke="#267965" stroke-width="5" stroke-dasharray="8 10" fill="none"/><g fill="#fff" stroke="#247965" stroke-width="5"><circle cx="110" cy="250" r="12"/><circle cx="360" cy="175" r="12"/><circle cx="570" cy="90" r="12"/></g><g font-size="15" fill="#35594b" font-family="system-ui"><text x="68" y="280">Start</text><text x="321" y="205">Fund 2</text><text x="530" y="65">Fund 3</text></g></svg><div class="mapnotice">Illustrative Beispielkarte – echte Fundorte folgen mit der Datenbank.</div></div><div class="info"><span class="tag">Demnächst live</span><h3>Wohin reist dein Stein?</h3><p>Gib die Nummer ein und entdecke später Fotos, Fundorte und persönliche Geschichten entlang seiner Reise.</p><button class="btn" onclick="show('search')">Stein suchen</button></div></div></section>
-<footer><span>✧ Wunderwelt · Jeder Stein erzählt eine Geschichte.</span><span>Designvorschau · Noch keine Speicherung</span></footer>
+<footer><span>✧ Wunderwelt · Jeder Stein erzählt eine Geschichte.</span><span>Wandersteine · Gemeinschaftsprojekt</span></footer>
 <div class="overlay" id="overlay" onclick="if(event.target===this)hide()"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modalhead"><span class="eyebrow">Wunderwelt · Wandersteine</span><button class="close" onclick="hide()" aria-label="Schließen">×</button></div><div id="modalcontent"></div></div></div>
 <script>
 const el=document.getElementById('overlay'),body=document.getElementById('modalcontent');
+const URL_BASE='https://qmkmdzmycpzgvsroqgdu.supabase.co', KEY='sb_publishable_GyJqmvub3YdI-a2hZ0qK1g_vvYMcpsg';
+const headers={'apikey':KEY,'Authorization':'Bearer '+KEY};
+const valid=id=>/^[0-9]{6}$/.test(id);
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const photoUrl=path=>URL_BASE+'/storage/v1/object/public/wandersteine/'+path.split('/').map(encodeURIComponent).join('/');
+async function api(path,opts={}){
+ const r=await fetch(URL_BASE+path,{...opts,headers:{...headers,...opts.headers}});
+ if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.message||'HTTP '+r.status);}
+ return r.status===204?null:r.json();
+}
 function show(type){let content='';
-if(type==='search')content='<h2 id="mt">Stein entdecken</h2><p>Gib die sechsstellige Nummer ein, um die Geschichte eines Steins zu sehen.</p><label>Steinnummer</label><input inputmode="numeric" maxlength="6" id="searchId" placeholder="z. B. 384721"><button class="btn" onclick="lookupStone()">Reise anzeigen</button><p id="searchResult" class="hint" role="status"></p>';
-if(type==='register')content='<h2 id="mt">Deinen Stein registrieren</h2><p>Reserviere eine Nummer für deinen Stein – zunächst 30 Tage. Monatlich verlängerbar, insgesamt maximal ein Jahr.</p><label>Steinnummer (6 Ziffern)</label><input id="wanted" inputmode="numeric" maxlength="6" placeholder="Deine Wunschnummer"><button class="btn outline" onclick="suggest()">Nummer vorschlagen</button><label>Name deines Steins</label><input id="stoneTitle" maxlength="100" placeholder="z. B. Sonnenschein"><label>Geschichte / Beschreibung</label><textarea id="stoneDescription" maxlength="2000" placeholder="Erzähl etwas über deinen Stein"></textarea><p class="hint">Testregistrierung: zunächst ohne Foto. Es sind maximal 20 Teststeine möglich; nur Nummern von 900000 bis 900099.</p><button class="btn" onclick="registerTestStone()">Teststein anlegen</button><p id="registerResult" class="hint" role="status"></p>';
-if(type==='report')content='<h2 id="mt">Fund melden</h2><p>Ein Fund mit Foto, Datum, Ort und optional deiner Geschichte – ohne Benutzerkonto.</p><label>Steinnummer</label><input maxlength="6" inputmode="numeric"><label>Funddatum</label><input type="date"><label>Fundort (ungefähr)</label><input placeholder="z. B. Kassel"><label>Foto</label><input type="file" accept="image/*"><label>Deine Geschichte (freiwillig)</label><textarea placeholder="Wie hast du den Stein gefunden?"></textarea><button class="btn" onclick="demo()">Fund eintragen</button>';
-body.innerHTML=content;el.classList.add('open');document.body.style.overflow='hidden'}
+if(type==='search')content='<h2 id="mt">Stein entdecken</h2><p>Gib die sechsstellige Nummer ein.</p><label>Steinnummer</label><input id="searchId" inputmode="numeric" maxlength="6" placeholder="z. B. 384721"><button class="btn" onclick="lookupStone()">Reise anzeigen</button><div id="searchResult" role="status"></div>';
+if(type==='register')content='<h2 id="mt">Deinen Stein registrieren</h2><p>Gib deinem Wanderstein eine Nummer und eine Geschichte.</p><label>Steinnummer (6 Ziffern)</label><input id="wanted" inputmode="numeric" maxlength="6" placeholder="Deine Wunschnummer"><button class="btn outline" onclick="suggest()">Nummer vorschlagen</button><label>Name des Steins</label><input id="stoneTitle" maxlength="100" placeholder="z. B. Sonnenschein"><label>Beschreibung</label><textarea id="stoneDescription" maxlength="2000"></textarea><label>Foto (erforderlich, max. 5 MB)</label><input id="stonePhoto" type="file" accept="image/jpeg,image/png,image/webp"><button class="btn" onclick="registerStone()">Stein registrieren</button><p id="registerResult" role="status" class="hint"></p>';
+if(type==='report')content='<h2 id="mt">Fund melden</h2><p>Ohne Benutzerkonto. Der Fund wird nach Prüfung sichtbar.</p><label>Steinnummer</label><input id="foundId" maxlength="6" inputmode="numeric"><label>Funddatum</label><input id="foundDate" type="date" value="'+new Date().toISOString().slice(0,10)+'"><label>Fundort (ungefähr)</label><input id="foundPlace" maxlength="180" placeholder="z. B. Kassel"><label>Foto (erforderlich, max. 5 MB)</label><input id="foundPhoto" type="file" accept="image/jpeg,image/png,image/webp"><label>Deine Geschichte (freiwillig)</label><textarea id="foundStory" maxlength="2000"></textarea><button class="btn" onclick="reportFind()">Fund eintragen</button><p id="reportResult" role="status" class="hint"></p>';
+body.innerHTML=content;el.classList.add('open');document.body.style.overflow='hidden';
+}
 function hide(){el.classList.remove('open');document.body.style.overflow=''}
-const SUPABASE_URL='https://qmkmdzmycpzgvsroqgdu.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_GyJqmvub3YdI-a2hZ0qK1g_vvYMcpsg';
+function suggest(){document.getElementById('wanted').value=String(Math.floor(100000+Math.random()*900000))}
+async function upload(file,prefix){
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5242880)throw Error('Bitte ein JPG-, PNG- oder WebP-Foto bis 5 MB auswählen.');
+ const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
+ const path=prefix+crypto.randomUUID()+'.'+ext;
+ const r=await fetch(URL_BASE+'/storage/v1/object/wandersteine/'+path,{method:'POST',headers:{...headers,'Content-Type':file.type,'x-upsert':'false'},body:file});
+ if(!r.ok){const j=await r.json().catch(()=>({}));throw Error(j.message||'Foto-Upload fehlgeschlagen');}
+ return path;
+}
+async function registerStone(){
+ const id=document.getElementById('wanted').value.trim(),title=document.getElementById('stoneTitle').value.trim(),description=document.getElementById('stoneDescription').value.trim(),file=document.getElementById('stonePhoto').files[0],out=document.getElementById('registerResult');
+ if(!valid(id)||!title){out.textContent='Bitte eine sechsstellige Nummer und einen Namen eingeben.';return}
+ out.textContent='Foto wird hochgeladen und Stein gespeichert …';
+ try{const path=await upload(file,'stones/'+id+'/');await api('/rest/v1/rpc/register_stone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_id:id,p_title:title,p_description:description,p_photo_path:path})});out.textContent='Stein '+id+' wurde registriert! Du kannst ihn jetzt suchen.'}
+ catch(e){out.textContent='Registrierung fehlgeschlagen: '+e.message}
+}
+async function reportFind(){
+ const id=document.getElementById('foundId').value.trim(),date=document.getElementById('foundDate').value,place=document.getElementById('foundPlace').value.trim(),story=document.getElementById('foundStory').value.trim(),file=document.getElementById('foundPhoto').files[0],out=document.getElementById('reportResult');
+ if(!valid(id)||!date){out.textContent='Bitte Steinnummer und Funddatum eingeben.';return}
+ out.textContent='Fund wird übermittelt …';
+ try{const path=await upload(file,'finds/');await api('/rest/v1/rpc/report_stone_find',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_stone_id:id,p_found_on:date,p_location_label:place,p_photo_path:path,p_story:story})});out.textContent='Danke! Dein Fund wurde gespeichert und wartet auf Freigabe.'}
+ catch(e){out.textContent='Fund konnte nicht gespeichert werden: '+e.message}
+}
 async function lookupStone(){
-  const id=document.getElementById('searchId').value.trim();
-  const result=document.getElementById('searchResult');
-  if(!/^\\d{6}$/.test(id)){result.textContent='Bitte eine sechsstellige Steinnummer eingeben.';return;}
-  result.textContent='Suche läuft …';
-  try {
-    const response=await fetch(SUPABASE_URL+'/rest/v1/stones?id=eq.'+encodeURIComponent(id)+'&select=id,title,description,created_at&limit=1',{
-      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY}
-    });
-    if(!response.ok)throw new Error('HTTP '+response.status);
-    const rows=await response.json();
-    if(!rows.length){result.textContent='Zu dieser Nummer ist noch kein registrierter Stein vorhanden.';return;}
-    const stone=rows[0];
-    result.textContent='Stein '+stone.id+(stone.title?' – '+stone.title:'')+(stone.description?' | '+stone.description:'');
-  } catch(err) {result.textContent='Die Datenbank ist momentan nicht erreichbar. Bitte später erneut versuchen.';console.error(err);}
-}
-async function registerTestStone(){
- const id=document.getElementById('wanted').value.trim();
- const title=document.getElementById('stoneTitle').value.trim();
- const description=document.getElementById('stoneDescription').value.trim();
- const result=document.getElementById('registerResult');
- if(!/^9000\\d{2}$/.test(id)){result.textContent='Für den Test bitte eine Nummer von 900000 bis 900099 wählen.';return;}
- if(!title){result.textContent='Bitte einen Namen für den Stein eingeben.';return;}
- result.textContent='Stein wird gespeichert …';
+ const id=document.getElementById('searchId').value.trim(),out=document.getElementById('searchResult');
+ if(!valid(id)){out.textContent='Bitte eine sechsstellige Nummer eingeben.';return}
+ out.textContent='Suche läuft …';
  try{
-  const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/register_test_stone',{
-   method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
-   body:JSON.stringify({p_id:id,p_title:title,p_description:description})
-  });
-  if(!response.ok){const err=await response.json().catch(()=>({}));throw new Error(err.message||'HTTP '+response.status);}
-  result.textContent='Gespeichert! Du kannst jetzt nach der Nummer '+id+' suchen.';
- }catch(err){result.textContent=err.message.includes('404')?'Die Testfunktion muss erst im Supabase SQL Editor aktiviert werden.':('Speichern fehlgeschlagen: '+err.message);}
+  const stones=await api('/rest/v1/stones?id=eq.'+id+'&select=id,title,description,photo_path&limit=1');
+  if(!stones.length){out.textContent='Dieser Stein wurde noch nicht registriert.';return}
+  const s=stones[0],finds=await api('/rest/v1/stone_finds?stone_id=eq.'+id+'&select=found_on,location_label,story,photo_path&order=found_on.desc');
+  out.innerHTML='<h3>'+safe(s.title||'Stein '+s.id)+'</h3><p>Steinnummer: '+safe(s.id)+'</p><p>'+safe(s.description)+'</p>'+(s.photo_path&&!s.photo_path.startsWith('test/')?'<img style="width:100%;max-height:260px;object-fit:contain" alt="Steinfoto" src="'+photoUrl(s.photo_path)+'">':'')+'<h3>Reise & Funde ('+finds.length+')</h3>'+(finds.length?finds.map(x=>'<div style="margin:16px 0;border-top:1px solid #ddd;padding-top:12px"><b>'+safe(x.found_on)+'</b> · '+safe(x.location_label||'Ort nicht angegeben')+'<p>'+safe(x.story)+'</p><img style="max-width:100%;max-height:240px" alt="Fundfoto" src="'+photoUrl(x.photo_path)+'"></div>').join(''):'Noch keine freigegebenen Funde.');
+ }catch(e){out.textContent='Datenbankabfrage fehlgeschlagen: '+e.message}
 }
-function demo(){alert('Dies ist eine Designvorschau. Es wird noch nichts gespeichert.')}
-function suggest(){document.getElementById('wanted').value=String(Math.floor(100000+Math.random()*900000));alert('Beispielnummer – noch nicht auf Verfügbarkeit geprüft.')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
 </script></body></html>
