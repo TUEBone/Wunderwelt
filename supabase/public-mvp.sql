@@ -17,7 +17,7 @@ begin
  if p_id !~ '^[0-9]{6}$' then raise exception 'Ungültige Steinnummer'; end if;
  if length(trim(coalesce(p_title,''))) not between 1 and 100 then raise exception 'Name erforderlich (max. 100 Zeichen)'; end if;
  if length(coalesce(p_description,''))>2000 then raise exception 'Beschreibung zu lang'; end if;
- if p_photo_path !~ ('^stones/'||p_id||'/[a-f0-9-]{36}\\.(jpg|jpeg|png|webp)$') then raise exception 'Ungültiger Fotopfad'; end if;
+ if p_photo_path !~ ('^stones/'||p_id||'/[a-f0-9-]{36}[.](jpg|jpeg|png|webp)$') then raise exception 'Ungültiger Fotopfad'; end if;
  if not exists(select 1 from storage.objects where bucket_id='wandersteine' and name=p_photo_path) then raise exception 'Foto nicht hochgeladen'; end if;
  if exists(select 1 from public.stone_reservations where id=p_id and expires_at>now()) then raise exception 'Nummer ist reserviert'; end if;
  insert into public.stones(id,title,description,photo_path) values(p_id,trim(p_title),p_description,p_photo_path);
@@ -30,7 +30,7 @@ begin
  if not exists(select 1 from public.stones where id=p_stone_id and status='active') then raise exception 'Stein nicht gefunden'; end if;
  if p_found_on is null or p_found_on>current_date then raise exception 'Ungültiges Funddatum'; end if;
  if length(coalesce(p_location_label,''))>180 or length(coalesce(p_story,''))>2000 then raise exception 'Text zu lang'; end if;
- if p_photo_path !~ '^finds/[a-f0-9-]{36}\\.(jpg|jpeg|png|webp)$' then raise exception 'Ungültiger Fotopfad'; end if;
+ if p_photo_path !~ '^finds/[a-f0-9-]{36}[.](jpg|jpeg|png|webp)$' then raise exception 'Ungültiger Fotopfad'; end if;
  if not exists(select 1 from storage.objects where bucket_id='wandersteine' and name=p_photo_path) then raise exception 'Foto nicht hochgeladen'; end if;
  insert into public.stone_finds(stone_id,found_on,location_label,photo_path,story,status)
  values(p_stone_id,p_found_on,p_location_label,p_photo_path,p_story,'pending') returning id into v_id;
