@@ -12,11 +12,29 @@
 <script>
 const el=document.getElementById('overlay'),body=document.getElementById('modalcontent');
 function show(type){let content='';
-if(type==='search')content='<h2 id="mt">Stein entdecken</h2><p>Gib die sechsstellige Nummer ein, um die Geschichte eines Steins zu sehen.</p><label>Steinnummer</label><input inputmode="numeric" maxlength="6" placeholder="z. B. 384721"><button class="btn" onclick="demo()">Reise anzeigen</button>';
+if(type==='search')content='<h2 id="mt">Stein entdecken</h2><p>Gib die sechsstellige Nummer ein, um die Geschichte eines Steins zu sehen.</p><label>Steinnummer</label><input inputmode="numeric" maxlength="6" id="searchId" placeholder="z. B. 384721"><button class="btn" onclick="lookupStone()">Reise anzeigen</button><p id="searchResult" class="hint" role="status"></p>';
 if(type==='register')content='<h2 id="mt">Deinen Stein registrieren</h2><p>Reserviere eine Nummer für deinen Stein – zunächst 30 Tage. Monatlich verlängerbar, insgesamt maximal ein Jahr.</p><label>Wunschnummer (6 Ziffern)</label><input id="wanted" inputmode="numeric" maxlength="6" placeholder="Deine Wunschnummer"><button class="btn outline" onclick="suggest()">Nummer vorschlagen</button><p class="hint">Ein Verlängerungscode und die echte Verfügbarkeitsprüfung kommen mit der Datenbank.</p><button class="btn" onclick="demo()">Nummer reservieren</button>';
 if(type==='report')content='<h2 id="mt">Fund melden</h2><p>Ein Fund mit Foto, Datum, Ort und optional deiner Geschichte – ohne Benutzerkonto.</p><label>Steinnummer</label><input maxlength="6" inputmode="numeric"><label>Funddatum</label><input type="date"><label>Fundort (ungefähr)</label><input placeholder="z. B. Kassel"><label>Foto</label><input type="file" accept="image/*"><label>Deine Geschichte (freiwillig)</label><textarea placeholder="Wie hast du den Stein gefunden?"></textarea><button class="btn" onclick="demo()">Fund eintragen</button>';
 body.innerHTML=content;el.classList.add('open');document.body.style.overflow='hidden'}
 function hide(){el.classList.remove('open');document.body.style.overflow=''}
+const SUPABASE_URL='https://qmkmdzmycpzgvsroqgdu.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_GyJqmvub3YdI-a2hZ0qK1g_vvYMcpsg';
+async function lookupStone(){
+  const id=document.getElementById('searchId').value.trim();
+  const result=document.getElementById('searchResult');
+  if(!/^\\d{6}$/.test(id)){result.textContent='Bitte eine sechsstellige Steinnummer eingeben.';return;}
+  result.textContent='Suche läuft …';
+  try {
+    const response=await fetch(SUPABASE_URL+'/rest/v1/stones?id=eq.'+encodeURIComponent(id)+'&select=id,title,description,created_at&limit=1',{
+      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY}
+    });
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const rows=await response.json();
+    if(!rows.length){result.textContent='Zu dieser Nummer ist noch kein registrierter Stein vorhanden.';return;}
+    const stone=rows[0];
+    result.textContent='Stein '+stone.id+(stone.title?' – '+stone.title:'')+(stone.description?' | '+stone.description:'');
+  } catch(err) {result.textContent='Die Datenbank ist momentan nicht erreichbar. Bitte später erneut versuchen.';console.error(err);}
+}
 function demo(){alert('Dies ist eine Designvorschau. Es wird noch nichts gespeichert.')}
 function suggest(){document.getElementById('wanted').value=String(Math.floor(100000+Math.random()*900000));alert('Beispielnummer – noch nicht auf Verfügbarkeit geprüft.')}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
