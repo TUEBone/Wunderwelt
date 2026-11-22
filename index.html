@@ -13,7 +13,7 @@
 const el=document.getElementById('overlay'),body=document.getElementById('modalcontent');
 function show(type){let content='';
 if(type==='search')content='<h2 id="mt">Stein entdecken</h2><p>Gib die sechsstellige Nummer ein, um die Geschichte eines Steins zu sehen.</p><label>Steinnummer</label><input inputmode="numeric" maxlength="6" id="searchId" placeholder="z. B. 384721"><button class="btn" onclick="lookupStone()">Reise anzeigen</button><p id="searchResult" class="hint" role="status"></p>';
-if(type==='register')content='<h2 id="mt">Deinen Stein registrieren</h2><p>Reserviere eine Nummer für deinen Stein – zunächst 30 Tage. Monatlich verlängerbar, insgesamt maximal ein Jahr.</p><label>Wunschnummer (6 Ziffern)</label><input id="wanted" inputmode="numeric" maxlength="6" placeholder="Deine Wunschnummer"><button class="btn outline" onclick="suggest()">Nummer vorschlagen</button><p class="hint">Ein Verlängerungscode und die echte Verfügbarkeitsprüfung kommen mit der Datenbank.</p><button class="btn" onclick="demo()">Nummer reservieren</button>';
+if(type==='register')content='<h2 id="mt">Deinen Stein registrieren</h2><p>Reserviere eine Nummer für deinen Stein – zunächst 30 Tage. Monatlich verlängerbar, insgesamt maximal ein Jahr.</p><label>Steinnummer (6 Ziffern)</label><input id="wanted" inputmode="numeric" maxlength="6" placeholder="Deine Wunschnummer"><button class="btn outline" onclick="suggest()">Nummer vorschlagen</button><label>Name deines Steins</label><input id="stoneTitle" maxlength="100" placeholder="z. B. Sonnenschein"><label>Geschichte / Beschreibung</label><textarea id="stoneDescription" maxlength="2000" placeholder="Erzähl etwas über deinen Stein"></textarea><p class="hint">Testregistrierung: zunächst ohne Foto. Es sind maximal 20 Teststeine möglich; nur Nummern von 900000 bis 900099.</p><button class="btn" onclick="registerTestStone()">Teststein anlegen</button><p id="registerResult" class="hint" role="status"></p>';
 if(type==='report')content='<h2 id="mt">Fund melden</h2><p>Ein Fund mit Foto, Datum, Ort und optional deiner Geschichte – ohne Benutzerkonto.</p><label>Steinnummer</label><input maxlength="6" inputmode="numeric"><label>Funddatum</label><input type="date"><label>Fundort (ungefähr)</label><input placeholder="z. B. Kassel"><label>Foto</label><input type="file" accept="image/*"><label>Deine Geschichte (freiwillig)</label><textarea placeholder="Wie hast du den Stein gefunden?"></textarea><button class="btn" onclick="demo()">Fund eintragen</button>';
 body.innerHTML=content;el.classList.add('open');document.body.style.overflow='hidden'}
 function hide(){el.classList.remove('open');document.body.style.overflow=''}
@@ -34,6 +34,23 @@ async function lookupStone(){
     const stone=rows[0];
     result.textContent='Stein '+stone.id+(stone.title?' – '+stone.title:'')+(stone.description?' | '+stone.description:'');
   } catch(err) {result.textContent='Die Datenbank ist momentan nicht erreichbar. Bitte später erneut versuchen.';console.error(err);}
+}
+async function registerTestStone(){
+ const id=document.getElementById('wanted').value.trim();
+ const title=document.getElementById('stoneTitle').value.trim();
+ const description=document.getElementById('stoneDescription').value.trim();
+ const result=document.getElementById('registerResult');
+ if(!/^9000\\d{2}$/.test(id)){result.textContent='Für den Test bitte eine Nummer von 900000 bis 900099 wählen.';return;}
+ if(!title){result.textContent='Bitte einen Namen für den Stein eingeben.';return;}
+ result.textContent='Stein wird gespeichert …';
+ try{
+  const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/register_test_stone',{
+   method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+   body:JSON.stringify({p_id:id,p_title:title,p_description:description})
+  });
+  if(!response.ok){const err=await response.json().catch(()=>({}));throw new Error(err.message||'HTTP '+response.status);}
+  result.textContent='Gespeichert! Du kannst jetzt nach der Nummer '+id+' suchen.';
+ }catch(err){result.textContent=err.message.includes('404')?'Die Testfunktion muss erst im Supabase SQL Editor aktiviert werden.':('Speichern fehlgeschlagen: '+err.message);}
 }
 function demo(){alert('Dies ist eine Designvorschau. Es wird noch nichts gespeichert.')}
 function suggest(){document.getElementById('wanted').value=String(Math.floor(100000+Math.random()*900000));alert('Beispielnummer – noch nicht auf Verfügbarkeit geprüft.')}
