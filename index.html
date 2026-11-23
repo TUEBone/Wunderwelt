@@ -15,7 +15,7 @@ const URL_BASE='https://qmkmdzmycpzgvsroqgdu.supabase.co', KEY='sb_publishable_G
 const headers={'apikey':KEY,'Authorization':'Bearer '+KEY};
 const valid=id=>/^[0-9]{6}$/.test(id);
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const photoUrl=path=>URL_BASE+'/storage/v1/object/public/wandersteine/'+path.split('/').map(encodeURIComponent).join('/');
+const photoUrl=path=>typeof path==='string'&&path.trim()?URL_BASE+'/storage/v1/object/public/wandersteine/'+path.split('/').map(encodeURIComponent).join('/'):'';
 async function api(path,opts={}){
  const r=await fetch(URL_BASE+path,{...opts,headers:{...headers,...opts.headers}});
  if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.message||'HTTP '+r.status);}
